@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberMind Lab - 5 Dimensions Brain Trainer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            dark: '#0B0F19',
+                            card: '#151C2C',
+                            accent: '#00F0FF',
+                            purple: '#7000FF',
+                            pink: '#FF007A',
+                            success: '#00FF66',
+                            warning: '#FFB800'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Kanit', 'sans-serif'],
+                        tech: ['Orbitron', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #080B11;
+            color: #E2E8F0;
+            user-select: none;
+            overflow-x: hidden;
+        }
+        
+        .glass-panel {
+            background: rgba(21, 28, 44, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .cyber-btn {
+            position: relative;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+        }
+
+        .cyber-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.5);
+        }
+
+        .cyber-btn:active {
+            transform: translateY(1px);
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.4; filter: drop-shadow(0 0 15px #00F0FF); }
+            50% { opacity: 0.8; filter: drop-shadow(0 0 25px #7000FF); }
+        }
+
+        .animate-glow {
+            animation: pulse-glow 3s infinite ease-in-out;
+        }
+
+        .active-node {
+            box-shadow: 0 0 30px #00F0FF, inset 0 0 15px #00F0FF;
+            transform: scale(1.05);
+        }
+
+        /* Canvas Particle Background */
+        #bgCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0B0F19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #00F0FF;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between font-sans relative">
+
+    <!-- Background Canvas -->
+    <canvas id="bgCanvas"></canvas>
+
+    <!-- Header Navigation -->
+    <header class="relative z-10 w-full p-4 max-w-6xl mx-auto flex justify-between items-center glass-panel rounded-b-2xl mt-0 md:mt-2">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyber-accent to-cyber-purple flex items-center justify-center text-black font-black text-xl shadow-lg">
+                <i class="fa-solid fa-brain text-black"></i>
+            </div>
+            <div>
+                <h1 class="font-tech text-lg md:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyber-accent to-cyber-pink">
+                    CYBERMIND <span class="text-xs px-2 py-0.5 rounded border border-cyber-accent text-cyber-accent font-sans">LAB</span>
+                </h1>
+                <p class="text-xs text-gray-400 hidden sm:block">ระบบฝึกและทดสอบประสาทวิทยาศาสตร์ 5 มิติ</p>
+            </div>
+        </div>
+
+        <!-- HUD Dynamic Stats -->
+        <div class="flex items-center space-x-4 md:space-x-8">
+            <div class="text-center px-2 py-1 rounded-lg bg-cyber-warning/10 border border-cyber-warning/30">
+                <p class="text-[10px] text-cyber-warning uppercase tracking-widest font-bold">คะแนนถอยหลัง (50-0)</p>
+                <p id="roundScoreGauge" class="font-tech text-xl md:text-2xl text-cyber-warning font-bold animate-pulse">50</p>
+            </div>
+            <div class="text-center">
+                <p class="text-[10px] text-gray-400 uppercase tracking-widest">คะแนนรวม</p>
+                <p id="hudScore" class="font-tech text-xl md:text-2xl text-cyber-accent font-bold">0</p>
+            </div>
+            <div class="text-center">
+                <p class="text-[10px] text-gray-400 uppercase tracking-widest">ความแม่นยำ</p>
+                <p id="hudAccuracy" class="font-tech text-xl md:text-2xl text-cyber-success font-bold">100%</p>
+            </div>
+            <button id="soundToggle" class="w-10 h-10 rounded-lg bg-gray-800/80 hover:bg-gray-700 text-gray-300 flex items-center justify-center transition">
+                <i class="fa-solid fa-volume-high text-cyber-accent"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Dynamic Content Wrapper -->
+    <main class="relative z-10 flex-1 flex items-center justify-center p-4 my-4 max-w-5xl mx-auto w-full">
+
+        <!-- SCREEN 1: INTRO & OBJECTIVES -->
+        <section id="screenIntro" class="w-full glass-panel p-6 md:p-10 rounded-3xl text-center space-y-6">
+            <div class="inline-block p-4 rounded-full bg-cyber-accent/10 border border-cyber-accent/30 mb-2 animate-glow">
+                <i class="fa-solid fa-atom text-5xl text-cyber-accent"></i>
+            </div>
+
+            <h2 class="text-3xl md:text-5xl font-bold font-tech text-white">
+                ฝึกสมองยกระดับศักยภาพ <span class="bg-clip-text text-transparent bg-gradient-to-r from-cyber-accent via-cyber-pink to-cyber-purple">5 DIMENSIONS</span>
+            </h2>
+
+            <div class="max-w-3xl mx-auto text-left space-y-4 bg-black/40 p-5 rounded-2xl border border-white/5 text-sm md:text-base text-gray-300 leading-relaxed">
+                <div class="flex items-start space-x-3">
+                    <i class="fa-solid fa-lightbulb text-cyber-warning text-xl mt-1"></i>
+                    <div>
+                        <strong class="text-white">แนวคิดและที่มาของเกม:</strong>
+                        <p class="text-gray-400 text-sm">ออกแบบตามหลักประสาทวิทยาศาสตร์ (Cognitive Neuroscience) เพื่อกระตุ้นการสร้างข่ายสายใยประสาทใหม่ (Neuroplasticity) ผ่านเกมแบบฝึกตอบสนองความเร็วสูง 5 รูปแบบ</p>
+                    </div>
+                </div>
+                <div class="flex items-start space-x-3">
+                    <i class="fa-solid fa-stopwatch-20 text-cyber-accent text-xl mt-1"></i>
+                    <div>
+                        <strong class="text-white">ระบบคะแนนถอยหลัง (50 - 0 Points System):</strong>
+                        <p class="text-gray-400 text-sm">ในแต่ละโจทย์/เป้าหมาย คะแนนเต็มจะเริ่มต้นที่ <span class="text-cyber-warning font-bold">50 คะแนน</span> และจะค่อยๆ ลดลงเหลือ <span class="text-cyber-pink font-bold">0 คะแนน</span> ตามเวลา ยิ่งตอบเร็วและถูกต้องยิ่งสะสมคะแนนได้สูงสุด!</p>
+                    </div>
+                </div>
+                <div class="flex items-start space-x-3">
+                    <i class="fa-solid fa-bullseye text-cyber-accent text-xl mt-1"></i>
+                    <div>
+                        <strong class="text-white">วัตถุประสงค์ในการฝึก:</strong>
+                        <p class="text-gray-400 text-sm">ทดสอบและยกระดับ: 1) ความเร็วการตอบสนอง 2) ความจำระยะสั้น 3) การคิดเลขตรรกะ 4) การสังเกตมิติสัมพันธ์ และ 5) สมาธิการยับยั้งชั่งใจ</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Level Previews Badges -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 pt-2">
+                <div class="p-3 glass-panel rounded-xl text-center hover:border-cyber-accent/50 transition">
+                    <i class="fa-solid fa-bolt text-cyber-accent text-2xl mb-1"></i>
+                    <p class="text-xs font-bold text-white">1. Reflex Speed</p>
+                    <p class="text-[10px] text-gray-400">ความเร็วการตอบสนอง</p>
+                </div>
+                <div class="p-3 glass-panel rounded-xl text-center hover:border-cyber-purple/50 transition">
+                    <i class="fa-solid fa-brain text-cyber-purple text-2xl mb-1"></i>
+                    <p class="text-xs font-bold text-white">2. Memory Matrix</p>
+                    <p class="text-[10px] text-gray-400">จดจำลำดับอนุกรม</p>
+                </div>
+                <div class="p-3 glass-panel rounded-xl text-center hover:border-cyber-pink/50 transition">
+                    <i class="fa-solid fa-calculator text-cyber-pink text-2xl mb-1"></i>
+                    <p class="text-xs font-bold text-white">3. Logic Rush</p>
+                    <p class="text-[10px] text-gray-400">ตรรกะและคิดเลขเร็ว</p>
+                </div>
+                <div class="p-3 glass-panel rounded-xl text-center hover:border-cyber-warning/50 transition">
+                    <i class="fa-solid fa-shapes text-cyber-warning text-2xl mb-1"></i>
+                    <p class="text-xs font-bold text-white">4. Spatial Odd</p>
+                    <p class="text-[10px] text-gray-400">มิติและการจับผิด</p>
+                </div>
+                <div class="p-3 glass-panel rounded-xl text-center hover:border-cyber-success/50 transition col-span-2 md:col-span-1">
+                    <i class="fa-solid fa-eye text-cyber-success text-2xl mb-1"></i>
+                    <p class="text-xs font-bold text-white">5. Focus Stroop</p>
+                    <p class="text-[10px] text-gray-400">สมาธิการยับยั้งชั่งใจ</p>
+                </div>
+            </div>
+
+            <div class="pt-4">
+                <button id="btnStartGame" class="cyber-btn px-10 py-4 rounded-2xl bg-gradient-to-r from-cyber-accent via-blue-600 to-cyber-purple font-tech font-bold text-lg md:text-xl text-black uppercase tracking-wider shadow-xl hover:brightness-110">
+                    <i class="fa-solid fa-play mr-2"></i> เริ่มต้นการทดสอบ (5 ด่าน)
+                </button>
+            </div>
+        </section>
+
+        <!-- SCREEN 2: GAMEPLAY CONTAINER -->
+        <section id="screenGame" class="w-full glass-panel p-6 md:p-8 rounded-3xl hidden flex-col space-y-6">
+            
+            <!-- Level Info Bar -->
+            <div class="flex justify-between items-center border-b border-white/10 pb-4">
+                <div class="flex items-center space-x-3">
+                    <span id="levelBadge" class="px-3 py-1 bg-cyber-purple/30 border border-cyber-purple text-cyber-purple font-tech font-bold rounded-lg text-sm">
+                        LEVEL 1 / 5
+                    </span>
+                    <h3 id="levelTitle" class="text-lg md:text-xl font-bold text-white">Reflex Pulse</h3>
+                </div>
+                
+                <!-- Timer Bar -->
+                <div class="flex items-center space-x-2">
+                    <i class="fa-regular fa-clock text-cyber-accent"></i>
+                    <span id="levelTimer" class="font-tech text-xl text-cyber-accent font-bold">15s</span>
+                </div>
+            </div>
+
+            <!-- Level Instructions -->
+            <p id="levelInstructions" class="text-sm text-gray-300 text-center bg-black/30 p-2 rounded-xl border border-white/5">
+                คำสั่ง: แตะที่โหนดพลังงานสีฟ้าโดยเร็วที่สุดเมื่อปรากฏขึ้น!
+            </p>
+
+            <!-- Play Area Container -->
+            <div id="gamePlayArea" class="relative min-h-[340px] md:min-h-[400px] flex items-center justify-center bg-black/50 rounded-2xl border border-white/5 p-4 overflow-hidden">
+                <!-- Content will be injected dynamically per level via JavaScript -->
+            </div>
+
+            <!-- Level Bottom Status -->
+            <div class="flex justify-between items-center text-xs text-gray-400 pt-2">
+                <div>เป้าหมายผ่านด่าน: <span id="levelTargetText" class="text-cyber-accent font-bold">80% Accuracy</span></div>
+                <div>ด่านปัจจุบัน: <span id="levelProgressText" class="text-white">0 / 10</span></div>
+            </div>
+        </section>
+
+        <!-- SCREEN 3: LEVEL TRANSITION MODAL -->
+        <section id="screenLevelPass" class="w-full max-w-md glass-panel p-8 rounded-3xl hidden text-center space-y-5 my-auto">
+            <div class="w-16 h-16 rounded-full bg-cyber-success/20 border-2 border-cyber-success flex items-center justify-center mx-auto text-cyber-success text-3xl">
+                <i class="fa-solid fa-check"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-white font-tech">ผ่านด่านเรียบร้อย!</h3>
+            <p id="levelPassDetails" class="text-sm text-gray-300">คุณทำผลงานได้ดีเยี่ยมในด่านนี้</p>
+            
+            <div class="bg-black/40 p-4 rounded-xl space-y-2 text-sm text-left">
+                <div class="flex justify-between">
+                    <span class="text-gray-400">คะแนนด่านนี้:</span>
+                    <span id="passStageScore" class="text-cyber-accent font-bold font-tech">+500</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">ความแม่นยำ:</span>
+                    <span id="passStageAccuracy" class="text-cyber-success font-bold font-tech">100%</span>
+                </div>
+            </div>
+
+            <button id="btnNextLevel" class="w-full cyber-btn py-3 rounded-xl bg-gradient-to-r from-cyber-accent to-blue-600 font-tech font-bold text-black uppercase">
+                ลุยต่อด่านถัดไป <i class="fa-solid fa-arrow-right ml-1"></i>
+            </button>
+        </section>
+
+        <!-- SCREEN 4: FINAL RESULTS & EVALUATION -->
+        <section id="screenResult" class="w-full glass-panel p-6 md:p-10 rounded-3xl hidden space-y-6">
+            <div class="text-center space-y-2">
+                <span class="text-xs font-tech text-cyber-accent tracking-widest uppercase">EVALUATION COMPLETE</span>
+                <h2 class="text-3xl md:text-4xl font-bold font-tech text-white">รายงานประเมินศักยภาพสมอง</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                
+                <!-- Score Breakdown -->
+                <div class="glass-panel p-5 rounded-2xl space-y-4 text-center md:text-left">
+                    <div>
+                        <p class="text-xs text-gray-400">คะแนนรวมทั้งหมด</p>
+                        <p id="finalScore" class="font-tech text-4xl text-cyber-accent font-bold">0</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400">ระดับฉายาประเมินผล</p>
+                        <p id="finalRank" class="text-lg font-bold text-cyber-pink">CYBER NEURO-MASTER</p>
+                    </div>
+                    <div class="pt-2 border-t border-white/10 space-y-1 text-xs text-gray-300">
+                        <div class="flex justify-between"><span>อัตราความแม่นยำรวม:</span><span id="finalAcc" class="text-cyber-success font-bold">0%</span></div>
+                        <div class="flex justify-between"><span>ความเร็วเฉลี่ย:</span><span id="finalSpeed" class="text-cyber-accent font-bold">0ms</span></div>
+                    </div>
+                </div>
+
+                <!-- Skill Radar / Breakdown Chart -->
+                <div class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center min-h-[220px]">
+                    <h4 class="text-xs font-bold text-gray-400 mb-2 uppercase">สมรรถภาพสมอง 5 ด้าน</h4>
+                    <canvas id="radarCanvas" class="w-full max-w-[220px] h-[220px]"></canvas>
+                </div>
+
+                <!-- Analysis Feedback -->
+                <div class="glass-panel p-5 rounded-2xl space-y-3">
+                    <h4 class="text-sm font-bold text-cyber-accent flex items-center">
+                        <i class="fa-solid fa-magnifying-glass-chart mr-2"></i> คำแนะนำปรับปรุงทักษะ
+                    </h4>
+                    <p id="finalFeedback" class="text-xs text-gray-300 leading-relaxed">
+                        สมองของคุณมีจุดเด่นด้านความจำและการคิดคำนวณที่รวดเร็ว แต่สามารถเพิ่มสมาธิในการยับยั้งสิ่งเร้าเพิ่มเติมได้
+                    </p>
+                    <div id="skillTipsList" class="space-y-1.5 pt-2 text-[11px] text-gray-400">
+                        <!-- Dynamic tips will go here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row justify-center gap-4 pt-4">
+                <button id="btnRestartGame" class="cyber-btn px-8 py-3 rounded-xl bg-gradient-to-r from-cyber-accent to-cyber-purple font-tech font-bold text-black uppercase">
+                    <i class="fa-solid fa-rotate-right mr-2"></i> เล่นใหม่อีกครั้ง
+                </button>
+                <button id="btnShareResult" class="px-8 py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-tech font-bold border border-white/20 transition">
+                    <i class="fa-solid fa-copy mr-2"></i> คัดลอกผลลัพธ์
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="relative z-10 text-center py-3 text-xs text-gray-500 border-t border-white/5">
+        CyberMind Lab &copy; 2026 - Educational Brain Skill Training Application
+    </footer>
+
+    <!-- Audio Synthesizer & Main Logic Script -->
+    <script>
+        const audio = {
+            ctx: null,
+            muted: false,
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            },
+            playTone(freq, type = 'sine', duration = 0.15, vol = 0.1) {
+                if (this.muted) return;
+                try {
+                    this.init();
+                    if (!this.ctx) return;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {}
+            },
+            playClick() { this.playTone(800, 'sine', 0.05, 0.1); },
+            playSuccess() { 
+                this.playTone(523.25, 'sine', 0.1, 0.12);
+                setTimeout(() => this.playTone(659.25, 'sine', 0.15, 0.12), 80);
+            },
+            playError() {
+                this.playTone(180, 'sawtooth', 0.2, 0.15);
+            },
+            playLevelClear() {
+                [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+                    setTimeout(() => this.playTone(f, 'triangle', 0.2, 0.15), i * 100);
+                });
+            }
+        };
+
+        const gameState = {
+            currentLevelIndex: 0,
+            score: 0,
+            totalAttempts: 0,
+            correctAttempts: 0,
+            reactionTimes: [],
+            levelScores: [0, 0, 0, 0, 0],
+            levelAccuracies: [0, 0, 0, 0, 0],
+            timerInterval: null,
+            scoreGaugeInterval: null,
+            timeRemaining: 0,
+            currentRoundScore: 50,
+
+            levels: [
+                {
+                    id: 1,
+                    title: "Reflex Speed (ความเร็วการตอบสนอง)",
+                    instructions: "แตะโหนดเป้าหมายให้เร็วที่สุดก่อนคะแนน 50 จะลดลงเหลือ 0!",
+                    timeLimit: 15,
+                    targetText: "แตะได้อย่างน้อย 8 ตัว",
+                    key: "reflex"
+                },
+                {
+                    id: 2,
+                    title: "Memory Matrix (อนุกรมความจำ)",
+                    instructions: "สังเกตลำดับ แล้วกดตามอย่างรวดเร็วเพื่อรักษาคะแนน 50-0!",
+                    timeLimit: 25,
+                    targetText: "ผ่านการทดสอบ 3 ลำดับ",
+                    key: "memory"
+                },
+                {
+                    id: 3,
+                    title: "Logic Rush (ตรรกะและการคิดเลข)",
+                    instructions: "หาค่า X ให้เร็วที่สุดก่อนคะแนนถอยหลัง 50-0 จะหมดลง!",
+                    timeLimit: 20,
+                    targetText: "ตอบถูกอย่างน้อย 5 ข้อ",
+                    key: "logic"
+                },
+                {
+                    id: 4,
+                    title: "Spatial Odd (มิติและการสังเกต)",
+                    instructions: "หาภาพที่มีทรงแตกต่างจากรูปอื่นเพื่อชิงคะแนน 50-0!",
+                    timeLimit: 20,
+                    targetText: "ตอบถูกอย่างน้อย 5 ข้อ",
+                    key: "spatial"
+                },
+                {
+                    id: 5,
+                    title: "Focus Stroop (สมาธิการยับยั้งชั่งใจ)",
+                    instructions: "เลือกปุ่มที่เป็น 'สีจริงของตัวอักษร' ก่อนคะแนน 50-0 จะเหลือ 0!",
+                    timeLimit: 20,
+                    targetText: "ตอบถูกอย่างน้อย 6 ข้อ",
+                    key: "focus"
+                }
+            ]
+        };
+
+        // DOM Elements
+        const screenIntro = document.getElementById('screenIntro');
+        const screenGame = document.getElementById('screenGame');
+        const screenLevelPass = document.getElementById('screenLevelPass');
+        const screenResult = document.getElementById('screenResult');
+
+        const hudScore = document.getElementById('hudScore');
+        const hudAccuracy = document.getElementById('hudAccuracy');
+        const roundScoreGauge = document.getElementById('roundScoreGauge');
+        const gamePlayArea = document.getElementById('gamePlayArea');
+
+        function resetAndStart50ScoreGauge(decayRateMs = 100) {
+            clearInterval(gameState.scoreGaugeInterval);
+            gameState.currentRoundScore = 50;
+            if (roundScoreGauge) roundScoreGauge.textContent = "50";
+
+            gameState.scoreGaugeInterval = setInterval(() => {
+                if (gameState.currentRoundScore > 0) {
+                    gameState.currentRoundScore--;
+                    if (roundScoreGauge) roundScoreGauge.textContent = gameState.currentRoundScore;
+                }
+            }, decayRateMs);
+        }
+
+        function updateHUD() {
+            hudScore.textContent = gameState.score;
+            const acc = gameState.totalAttempts > 0 ? 
+                Math.round((gameState.correctAttempts / gameState.totalAttempts) * 100) : 100;
+            hudAccuracy.textContent = `${acc}%`;
+        }
+
+        function startGame() {
+            audio.playClick();
+            gameState.currentLevelIndex = 0;
+            gameState.score = 0;
+            gameState.totalAttempts = 0;
+            gameState.correctAttempts = 0;
+            gameState.reactionTimes = [];
+            gameState.levelScores = [0, 0, 0, 0, 0];
+            gameState.levelAccuracies = [0, 0, 0, 0, 0];
+
+            updateHUD();
+            showScreen('game');
+            loadLevel(0);
+        }
+
+        function showScreen(screen) {
+            screenIntro.classList.add('hidden');
+            screenGame.classList.add('hidden');
+            screenLevelPass.classList.add('hidden');
+            screenResult.classList.add('hidden');
+
+            if (screen === 'intro') screenIntro.classList.remove('hidden');
+            if (screen === 'game') screenGame.classList.remove('hidden');
+            if (screen === 'pass') screenLevelPass.classList.remove('hidden');
+            if (screen === 'result') screenResult.classList.remove('hidden');
+        }
+
+        function loadLevel(index) {
+            clearInterval(gameState.timerInterval);
+            clearInterval(gameState.scoreGaugeInterval);
+            
+            if (index >= gameState.levels.length) {
+                showFinalResults();
+                return;
+            }
+
+            gameState.currentLevelIndex = index;
+            const level = gameState.levels[index];
+
+            document.getElementById('levelBadge').textContent = `LEVEL ${level.id} / 5`;
+            document.getElementById('levelTitle').textContent = level.title;
+            document.getElementById('levelInstructions').textContent = `คำสั่ง: ${level.instructions}`;
+            document.getElementById('levelTargetText').textContent = level.targetText;
+
+            gameState.timeRemaining = level.timeLimit;
+            document.getElementById('levelTimer').textContent = `${gameState.timeRemaining}s`;
+
+            gamePlayArea.innerHTML = ''; 
+
+            if (level.key === 'reflex') initLevelReflex();
+            if (level.key === 'memory') initLevelMemory();
+            if (level.key === 'logic') initLevelLogic();
+            if (level.key === 'spatial') initLevelSpatial();
+            if (level.key === 'focus') initLevelFocus();
+
+            startTimer();
+        }
+
+        function startTimer() {
+            gameState.timerInterval = setInterval(() => {
+                gameState.timeRemaining--;
+                document.getElementById('levelTimer').textContent = `${gameState.timeRemaining}s`;
+
+                if (gameState.timeRemaining <= 0) {
+                    clearInterval(gameState.timerInterval);
+                    clearInterval(gameState.scoreGaugeInterval);
+                    finishCurrentLevel();
+                }
+            }, 1000);
+        }
+
+        function finishCurrentLevel() {
+            audio.playLevelClear();
+            clearInterval(gameState.scoreGaugeInterval);
+            const lvlIndex = gameState.currentLevelIndex;
+            
+            const lvlAttempts = gameState.totalAttempts;
+            const lvlCorrect = gameState.correctAttempts;
+            const acc = lvlAttempts > 0 ? Math.round((lvlCorrect / lvlAttempts) * 100) : 100;
+            gameState.levelAccuracies[lvlIndex] = acc;
+
+            document.getElementById('passStageScore').textContent = `+${gameState.levelScores[lvlIndex]}`;
+            document.getElementById('passStageAccuracy').textContent = `${acc}%`;
+
+            showScreen('pass');
+        }
+
+        function proceedNextLevel() {
+            audio.playClick();
+            const nextIdx = gameState.currentLevelIndex + 1;
+            if (nextIdx < gameState.levels.length) {
+                showScreen('game');
+                loadLevel(nextIdx);
+            } else {
+                showFinalResults();
+            }
+        }
+
+        function initLevelReflex() {
+            let hits = 0;
+            let startTime = 0;
+
+            const grid = document.createElement('div');
+            grid.className = "grid grid-cols-3 gap-4 w-full max-w-xs mx-auto";
+
+            for (let i = 0; i < 9; i++) {
+                const node = document.createElement('button');
+                node.className = "h-20 rounded-2xl glass-panel border border-white/10 transition-all duration-150 flex items-center justify-center text-2xl text-cyber-accent";
+                node.dataset.index = i;
+                node.innerHTML = '<i class="fa-solid fa-bolt opacity-20"></i>';
+                grid.appendChild(node);
+            }
+            gamePlayArea.appendChild(grid);
+
+            function spawnActiveNode() {
+                if (gameState.timeRemaining <= 0) return;
+                
+                const nodes = grid.children;
+                Array.from(nodes).forEach(n => {
+                    n.className = "h-20 rounded-2xl glass-panel border border-white/10 transition-all duration-150 flex items-center justify-center text-2xl text-gray-600";
+                    n.innerHTML = '<i class="fa-solid fa-bolt opacity-20"></i>';
+                    n.onclick = null;
+                });
+
+                const randomIndex = Math.floor(Math.random() * 9);
+                const activeNode = nodes[randomIndex];
+                activeNode.className = "h-20 rounded-2xl bg-gradient-to-br from-cyber-accent to-blue-500 active-node transition-all duration-150 flex items-center justify-center text-3xl text-black font-bold cursor-pointer";
+                activeNode.innerHTML = '<i class="fa-solid fa-bolt text-black animate-bounce"></i>';
+
+                startTime = Date.now();
+                resetAndStart50ScoreGauge(24);
+
+                activeNode.onclick = () => {
+                    const reaction = Date.now() - startTime;
+                    gameState.reactionTimes.push(reaction);
+                    hits++;
+
+                    const earnedScore = Math.max(5, gameState.currentRoundScore);
+                    gameState.score += earnedScore;
+                    gameState.levelScores[0] += earnedScore;
+                    gameState.correctAttempts++;
+                    gameState.totalAttempts++;
+                    audio.playSuccess();
+                    updateHUD();
+
+                    document.getElementById('levelProgressText').textContent = `${hits} Hit(s)`;
+                    spawnActiveNode();
+                };
+            }
+
+            spawnActiveNode();
+        }
+
+        function initLevelMemory() {
+            let sequence = [];
+            let userSequence = [];
+            let sequenceLength = 3;
+            let isPlayingSequence = false;
+            let successfulRounds = 0;
+
+            const grid = document.createElement('div');
+            grid.className = "grid grid-cols-3 gap-3 w-full max-w-xs mx-auto";
+
+            for (let i = 0; i < 9; i++) {
+                const btn = document.createElement('button');
+                btn.className = "h-20 rounded-2xl glass-panel border border-white/10 transition-all duration-200";
+                btn.dataset.id = i;
+                grid.appendChild(btn);
+            }
+            gamePlayArea.appendChild(grid);
+
+            function playSequence() {
+                isPlayingSequence = true;
+                userSequence = [];
+                sequence = [];
+                for (let i = 0; i < sequenceLength; i++) {
+                    sequence.push(Math.floor(Math.random() * 9));
+                }
+
+                document.getElementById('levelProgressText').textContent = `รอบที่ชนะ: ${successfulRounds}`;
+
+                let idx = 0;
+                const interval = setInterval(() => {
+                    if (idx > 0) {
+                        grid.children[sequence[idx - 1]].classList.remove('bg-cyber-purple', 'shadow-[0_0_25px_#7000FF]');
+                    }
+                    if (idx < sequence.length) {
+                        const target = grid.children[sequence[idx]];
+                        target.classList.add('bg-cyber-purple', 'shadow-[0_0_25px_#7000FF]');
+                        audio.playTone(300 + sequence[idx] * 50, 'sine', 0.2);
+                        idx++;
+                    } else {
+                        clearInterval(interval);
+                        isPlayingSequence = false;
+                        resetAndStart50ScoreGauge(100);
+                        enableUserInputs();
+                    }
+                }, 600);
+            }
+
+            function enableUserInputs() {
+                Array.from(grid.children).forEach(btn => {
+                    btn.onclick = () => {
+                        if (isPlayingSequence) return;
+                        const id = parseInt(btn.dataset.id);
+                        userSequence.push(id);
+                        
+                        btn.classList.add('bg-cyber-accent');
+                        audio.playTone(400 + id * 40, 'sine', 0.1);
+                        setTimeout(() => btn.classList.remove('bg-cyber-accent'), 200);
+
+                        const currentStep = userSequence.length - 1;
+                        if (userSequence[currentStep] !== sequence[currentStep]) {
+                            gameState.currentRoundScore = Math.max(0, gameState.currentRoundScore - 10);
+                            if (roundScoreGauge) roundScoreGauge.textContent = gameState.currentRoundScore;
+                            audio.playError();
+                            gameState.totalAttempts++;
+                            updateHUD();
+                            playSequence();
+                            return;
+                        }
+
+                        if (userSequence.length === sequence.length) {
+                            audio.playSuccess();
+                            successfulRounds++;
+                            const earnedScore = Math.max(10, gameState.currentRoundScore) * 2;
+                            gameState.score += earnedScore;
+                            gameState.correctAttempts++;
+                            gameState.totalAttempts++;
+                            gameState.levelScores[1] += earnedScore;
+                            updateHUD();
+
+                            sequenceLength++;
+                            setTimeout(playSequence, 800);
+                        }
+                    };
+                });
+            }
+
+            setTimeout(playSequence, 500);
+        }
+
+        function initLevelLogic() {
+            let solvedCount = 0;
+
+            const container = document.createElement('div');
+            container.className = "w-full max-w-md text-center space-y-6";
+
+            const exprDisplay = document.createElement('div');
+            exprDisplay.className = "text-4xl md:text-5xl font-tech font-bold text-cyber-accent bg-black/60 p-6 rounded-2xl border border-cyber-accent/30 tracking-widest";
+            container.appendChild(exprDisplay);
+
+            const optionsGrid = document.createElement('div');
+            optionsGrid.className = "grid grid-cols-2 gap-4";
+            container.appendChild(optionsGrid);
+
+            gamePlayArea.appendChild(container);
+
+            function generateEquation() {
+                resetAndStart50ScoreGauge(80);
+
+                const a = Math.floor(Math.random() * 20) + 5;
+                const isAddition = Math.random() > 0.5;
+                
+                let answer;
+                let exprText;
+
+                if (isAddition) {
+                    const targetX = Math.floor(Math.random() * 15) + 2;
+                    const c = a + targetX;
+                    exprText = `${a} + X = ${c}`;
+                    answer = targetX;
+                } else {
+                    const targetX = Math.floor(Math.random() * 10) + 2;
+                    const c = a * targetX;
+                    exprText = `${a} × X = ${c}`;
+                    answer = targetX;
+                }
+
+                exprDisplay.textContent = exprText;
+
+                const choices = [answer];
+                while (choices.length < 4) {
+                    const wrong = answer + (Math.floor(Math.random() * 8) - 4);
+                    if (wrong > 0 && !choices.includes(wrong)) choices.push(wrong);
+                }
+                choices.sort(() => Math.random() - 0.5);
+
+                optionsGrid.innerHTML = '';
+                choices.forEach(val => {
+                    const btn = document.createElement('button');
+                    btn.className = "cyber-btn py-4 rounded-xl glass-panel text-2xl font-tech font-bold text-white hover:border-cyber-accent";
+                    btn.textContent = val;
+                    btn.onclick = () => {
+                        gameState.totalAttempts++;
+                        if (val === answer) {
+                            audio.playSuccess();
+                            solvedCount++;
+                            const earnedScore = Math.max(5, gameState.currentRoundScore);
+                            gameState.correctAttempts++;
+                            gameState.score += earnedScore;
+                            gameState.levelScores[2] += earnedScore;
+                            document.getElementById('levelProgressText').textContent = `แก้โจทย์สำเร็จ: ${solvedCount}`;
+                        } else {
+                            audio.playError();
+                            gameState.currentRoundScore = Math.max(0, gameState.currentRoundScore - 15);
+                            if (roundScoreGauge) roundScoreGauge.textContent = gameState.currentRoundScore;
+                        }
+                        updateHUD();
+                        generateEquation();
+                    };
+                    optionsGrid.appendChild(btn);
+                });
+            }
+
+            generateEquation();
+        }
+
+        function initLevelSpatial() {
+            let scoreCount = 0;
+
+            const container = document.createElement('div');
+            container.className = "w-full max-w-md text-center space-y-4";
+
+            const grid = document.createElement('div');
+            grid.className = "grid grid-cols-3 gap-4";
+            container.appendChild(grid);
+
+            gamePlayArea.appendChild(container);
+
+            const shapes = [
+                'fa-shapes', 'fa-square-full', 'fa-diamond', 'fa-play', 'fa-star', 'fa-certificate'
+            ];
+
+            function generateSpatialPuzzle() {
+                resetAndStart50ScoreGauge(70);
+
+                grid.innerHTML = '';
+                const baseShape = shapes[Math.floor(Math.random() * shapes.length)];
+                const baseRotation = Math.floor(Math.random() * 4) * 90;
+                const oddIndex = Math.floor(Math.random() * 9);
+
+                for (let i = 0; i < 9; i++) {
+                    const btn = document.createElement('button');
+                    btn.className = "h-20 rounded-2xl glass-panel flex items-center justify-center text-3xl text-cyber-accent transition hover:scale-105 border border-white/10";
+                    
+                    const icon = document.createElement('i');
+                    icon.className = `fa-solid ${baseShape}`;
+
+                    if (i === oddIndex) {
+                        const oddRotation = (baseRotation + 90) % 360;
+                        icon.style.transform = `rotate(${oddRotation}deg)`;
+                        btn.classList.add('text-cyber-pink');
+                    } else {
+                        icon.style.transform = `rotate(${baseRotation}deg)`;
+                    }
+
+                    btn.appendChild(icon);
+
+                    btn.onclick = () => {
+                        gameState.totalAttempts++;
+                        if (i === oddIndex) {
+                            audio.playSuccess();
+                            scoreCount++;
+                            const earnedScore = Math.max(5, gameState.currentRoundScore);
+                            gameState.correctAttempts++;
+                            gameState.score += earnedScore;
+                            gameState.levelScores[3] += earnedScore;
+                            document.getElementById('levelProgressText').textContent = `ตอบถูก: ${scoreCount}`;
+                        } else {
+                            audio.playError();
+                            gameState.currentRoundScore = Math.max(0, gameState.currentRoundScore - 15);
+                            if (roundScoreGauge) roundScoreGauge.textContent = gameState.currentRoundScore;
+                        }
+                        updateHUD();
+                        generateSpatialPuzzle();
+                    };
+
+                    grid.appendChild(btn);
+                }
+            }
+
+            generateSpatialPuzzle();
+        }
+
+        function initLevelFocus() {
+            let correctCount = 0;
+
+            const container = document.createElement('div');
+            container.className = "w-full max-w-md text-center space-y-6";
+
+            const wordDisplay = document.createElement('div');
+            wordDisplay.className = "text-5xl font-bold py-8 rounded-2xl glass-panel border border-white/10 tracking-wider shadow-inner";
+            container.appendChild(wordDisplay);
+
+            const btnGrid = document.createElement('div');
+            btnGrid.className = "grid grid-cols-2 gap-4";
+            container.appendChild(btnGrid);
+
+            gamePlayArea.appendChild(container);
+
+            const colors = [
+                { name: 'แดง (RED)', hex: '#FF007A', key: 'red' },
+                { name: 'ฟ้า (BLUE)', hex: '#00F0FF', key: 'blue' },
+                { name: 'เขียว (GREEN)', hex: '#00FF66', key: 'green' },
+                { name: 'เหลือง (YELLOW)', hex: '#FFB800', key: 'yellow' }
+            ];
+
+            function generateStroop() {
+                resetAndStart50ScoreGauge(60);
+
+                const textObj = colors[Math.floor(Math.random() * colors.length)];
+                let colorObj = colors[Math.floor(Math.random() * colors.length)];
+                
+                wordDisplay.textContent = textObj.name.split(' ')[0];
+                wordDisplay.style.color = colorObj.hex;
+
+                btnGrid.innerHTML = '';
+
+                colors.forEach(c => {
+                    const btn = document.createElement('button');
+                    btn.className = "py-4 rounded-xl glass-panel font-bold text-lg hover:border-cyber-accent transition flex items-center justify-center space-x-2";
+                    
+                    const colorDot = document.createElement('span');
+                    colorDot.className = "w-4 h-4 rounded-full inline-block";
+                    colorDot.style.backgroundColor = c.hex;
+
+                    btn.appendChild(colorDot);
+                    btn.appendChild(document.createTextNode(c.name.split(' ')[0]));
+
+                    btn.onclick = () => {
+                        gameState.totalAttempts++;
+                        if (c.key === colorObj.key) {
+                            audio.playSuccess();
+                            correctCount++;
+                            const earnedScore = Math.max(5, gameState.currentRoundScore);
+                            gameState.correctAttempts++;
+                            gameState.score += earnedScore;
+                            gameState.levelScores[4] += earnedScore;
+                            document.getElementById('levelProgressText').textContent = `ถูกต้อง: ${correctCount}`;
+                        } else {
+                            audio.playError();
+                            gameState.currentRoundScore = Math.max(0, gameState.currentRoundScore - 20);
+                            if (roundScoreGauge) roundScoreGauge.textContent = gameState.currentRoundScore;
+                        }
+                        updateHUD();
+                        generateStroop();
+                    };
+
+                    btnGrid.appendChild(btn);
+                });
+            }
+
+            generateStroop();
+        }
+
+        function showFinalResults() {
+            clearInterval(gameState.scoreGaugeInterval);
+            showScreen('result');
+
+            const totalAcc = gameState.totalAttempts > 0 ? 
+                Math.round((gameState.correctAttempts / gameState.totalAttempts) * 100) : 100;
+            
+            const avgSpeed = gameState.reactionTimes.length > 0 ?
+                Math.round(gameState.reactionTimes.reduce((a, b) => a + b, 0) / gameState.reactionTimes.length) : 280;
+
+            document.getElementById('finalScore').textContent = gameState.score;
+            document.getElementById('finalAcc').textContent = `${totalAcc}%`;
+            document.getElementById('finalSpeed').textContent = `${avgSpeed} ms`;
+
+            let rankTitle = "NEURO-NOVICE";
+            if (gameState.score > 250) rankTitle = "CYBER-THINKER";
+            if (gameState.score > 500) rankTitle = "MIND SPECIALIST";
+            if (gameState.score > 750) rankTitle = "CYBER NEURO-MASTER";
+            document.getElementById('finalRank').textContent = rankTitle;
+
+            drawSkillRadar();
+
+            const tips = [
+                "• ระบบคะแนนถอยหลัง 50-0 ช่วยเร่งปฏิกิริยาตอบสนองของระบบประสาท",
+                "• ตอบถูกในทันทีเมื่อโจทย์ปรากฏเพื่อคว้าคะแนนเต็ม 50 ในแต่ละรอบ",
+                "• การลดข้อผิดพลาดช่วยป้องกันไม่ให้คะแนนถอยหลังถูกหักลดฮวบฮาบ"
+            ];
+            document.getElementById('skillTipsList').innerHTML = tips.map(t => `<p>${t}</p>`).join('');
+        }
+
+        function drawSkillRadar() {
+            const canvas = document.getElementById('radarCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            canvas.width = 220;
+            canvas.height = 220;
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = 75;
+            const labels = ['Reflex', 'Memory', 'Logic', 'Spatial', 'Focus'];
+            
+            const scores = gameState.levelScores.map(sc => Math.min(1, sc / 200));
+            const values = scores.map(s => Math.max(0.25, s));
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = 'rgba(0, 240, 255, 0.2)';
+            ctx.lineWidth = 1;
+
+            for (let r = 1; r <= 3; r++) {
+                ctx.beginPath();
+                const curR = (radius / 3) * r;
+                for (let i = 0; i < 5; i++) {
+                    const angle = (Math.PI * 2 / 5) * i - Math.PI / 2;
+                    const x = centerX + curR * Math.cos(angle);
+                    const y = centerY + curR * Math.sin(angle);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+
+            ctx.beginPath();
+            ctx.fillStyle = 'rgba(0, 240, 255, 0.35)';
+            ctx.strokeStyle = '#00F0FF';
+            ctx.lineWidth = 2;
+
+            for (let i = 0; i < 5; i++) {
+                const angle = (Math.PI * 2 / 5) * i - Math.PI / 2;
+                const curR = radius * values[i];
+                const x = centerX + curR * Math.cos(angle);
+                const y = centerY + curR * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#E2E8F0';
+            ctx.font = '10px Kanit';
+            ctx.textAlign = 'center';
+            for (let i = 0; i < 5; i++) {
+                const angle = (Math.PI * 2 / 5) * i - Math.PI / 2;
+                const x = centerX + (radius + 18) * Math.cos(angle);
+                const y = centerY + (radius + 18) * Math.sin(angle) + 3;
+                ctx.fillText(labels[i], x, y);
+            }
+        }
+
+        function restartGame() {
+            audio.playClick();
+            showScreen('intro');
+        }
+
+        function copyResultsToClipboard() {
+            const score = gameState.score;
+            const rank = document.getElementById('finalRank').textContent;
+            const text = `🧠 CyberMind Lab Evaluation Results:\nScore: ${score} Points (50-0 Countdown System)\nRank: ${rank}\nTest your cognitive power in 5 brain dimensions!`;
+            
+            const dummy = document.createElement('textarea');
+            document.body.appendChild(dummy);
+            dummy.value = text;
+            dummy.select();
+            document.execCommand('copy');
+            document.body.removeChild(dummy);
+
+            const btn = document.getElementById('btnShareResult');
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i> คัดลอกเรียบร้อย!';
+            setTimeout(() => btn.innerHTML = orig, 2000);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            // Button Listeners
+            const btnStart = document.getElementById('btnStartGame');
+            if (btnStart) btnStart.addEventListener('click', startGame);
+
+            const btnNext = document.getElementById('btnNextLevel');
+            if (btnNext) btnNext.addEventListener('click', proceedNextLevel);
+
+            const btnRestart = document.getElementById('btnRestartGame');
+            if (btnRestart) btnRestart.addEventListener('click', restartGame);
+
+            const btnShare = document.getElementById('btnShareResult');
+            if (btnShare) btnShare.addEventListener('click', copyResultsToClipboard);
+
+            const btnSound = document.getElementById('soundToggle');
+            if (btnSound) {
+                btnSound.addEventListener('click', () => {
+                    audio.muted = !audio.muted;
+                    btnSound.innerHTML = audio.muted ? 
+                        '<i class="fa-solid fa-volume-xmark text-gray-500"></i>' : 
+                        '<i class="fa-solid fa-volume-high text-cyber-accent"></i>';
+                });
+            }
+
+            // Canvas Particle Background Setup
+            const canvas = document.getElementById('bgCanvas');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                let width = canvas.width = window.innerWidth;
+                let height = canvas.height = window.innerHeight;
+
+                window.addEventListener('resize', () => {
+                    width = canvas.width = window.innerWidth;
+                    height = canvas.height = window.innerHeight;
+                });
+
+                const particles = Array.from({ length: 40 }, () => ({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: (Math.random() - 0.5) * 0.5,
+                    radius: Math.random() * 2 + 1
+                }));
+
+                function renderBg() {
+                    ctx.clearRect(0, 0, width, height);
+                    ctx.fillStyle = 'rgba(0, 240, 255, 0.4)';
+                    ctx.strokeStyle = 'rgba(0, 240, 255, 0.08)';
+
+                    particles.forEach((p, i) => {
+                        p.x += p.vx;
+                        p.y += p.vy;
+
+                        if (p.x < 0 || p.x > width) p.vx *= -1;
+                        if (p.y < 0 || p.y > height) p.vy *= -1;
+
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        for (let j = i + 1; j < particles.length; j++) {
+                            const p2 = particles[j];
+                            const dx = p.x - p2.x;
+                            const dy = p.y - p2.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist < 120) {
+                                ctx.beginPath();
+                                ctx.moveTo(p.x, p.y);
+                                ctx.lineTo(p2.x, p2.y);
+                                ctx.stroke();
+                            }
+                        }
+                    });
+                    requestAnimationFrame(renderBg);
+                }
+                renderBg();
+            }
+        });
+    </script>
+</body>
+</html>
